@@ -25,9 +25,17 @@
 
             </div>
         </div>
+        <div class="row pagination justify-content-center">
+            <div class="col-10 pages d-flex justify-content-center">
+
+            </div>
+        </div>
     </div>
 </body>
 <script>
+    blogsPerPage = 20
+    currentPage = 1
+    blogs = []
     if(localStorage.getItem('token')){
         $.ajax({
             url: 'http://localhost:3000/api/blogGet',
@@ -36,22 +44,28 @@
                 xhr.setRequestHeader("Authorization", localStorage.getItem('token'))
             },
             success: function(data){
-                console.log(data)
-                data.forEach(blog => {
-                    $(`<div id="` + blog.id +`" class="mt-3">
-                        <div class="card" style="width: 18rem;">
-                        <div class="card-body">
-                            <h5 class="card-title">` + blog.user.email + `</h5>
-                            <h6 class="card-subtitle mb-2 text-muted">` + blog.createdAt.replace(/T/, ' ').replace(/\..+/, '') + `</h6>
-                            <p class="card-text">`+ blog.text+`</p>
-                        </div>
-                        </div>
-                        </div>`).prependTo('.blogAll')
+                blogs = data
+                getPaginatedBlogs().forEach(blog => {
+                    $("<div class='mt-3'>\
+                        <div class='card' style='width: 18rem;'>\
+                        <div class='card-body'>\
+                            <h5 class='card-title'>" + blog.user.email + "</h5>\
+                            <h6 class='card-subtitle mb-2 text-muted'>" + blog.createdAt.replace(/T/, ' ').replace(/\..+/, '') + "</h6>\
+                            <p class='card-text'>"+ blog.text+"</p>\
+                        </div>\
+                        <div class='card-body'>"+ isOwnBlog(blog) +"\
+                        </div>\
+                        </div>\
+                        </div>").prependTo('.blogAll')
                 })
                 $('.currentMessage').text('Все блоги загружены')
                 setTimeout(()=>{
                     $('.currentMessage').text('')
                 },1000)
+                for(let i = 1; i< Math.ceil(blogs.length/20)+1; i++){
+                    $('.pages').append('<button class="mx-1 page">'+ i +'</button>')
+                }
+
             }
         });
     $('.blogSend').click((e)=>{
@@ -74,9 +88,60 @@
 
         }
     })
+    $(document).on('click','.page',(e)=>{
+        currentPage = e.target.innerText
+        console.log(currentPage)
+        $('.blogAll').empty()
+        getPaginatedBlogs().forEach(blog => {
+                    $(`<div id="` + blog.id +`" class="mt-3">
+                        <div class="card" style="width: 18rem;">
+                        <div class="card-body">
+                            <h5 class="card-title">` + blog.user.email + `</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">` + blog.createdAt.replace(/T/, ' ').replace(/\..+/, '') + `</h6>
+                            <p class="card-text">`+ blog.text+`</p>
+                        </div>
+                        </div>
+                        </div>`).prependTo('.blogAll')
+                })
+    })
+    $(document).on('click','.change',(e)=>{
+        console.log(e.target.id)
+        const newText = prompt('Введите новый текст для вашего блога')
+        $.ajax({
+            url: 'http://localhost:3000/api/blogPatch',
+            type: 'POST',
+            data: {id: e.target.id, text: newText},
+            beforeSend : function(xhr) {
+                xhr.setRequestHeader("Authorization", localStorage.getItem('token'))
+            },
+            success: function(data){
+                $('.currentMessage').text('Блог успешно Изменен!')
+                    setTimeout(()=>{
+                        $('.currentMessage').text('')
+                        window.location.reload()
+                    },1000)
+                windows.location.reload()
+            }
+        })
+    })
 }
 else{
     window.location.replace('/auth')
 }
+
+function getPaginatedBlogs(){
+    let from = (currentPage-1)*blogsPerPage
+    let to = from + blogsPerPage
+    return blogs.slice(from,to)
+}
+function isOwnBlog(blog){
+    if(blog.user.email == localStorage.getItem('email')){
+        return ("<button id='"+blog.id+"'' class='btn btn-primary change'>Изменить</button>")
+    }
+    else{
+        return ''
+    }
+}
+    
 </script>
 </html>

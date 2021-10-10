@@ -17,7 +17,7 @@ class Controller {
             res.res.send(token)
             } catch (error) {
                 if(error.name=='SequelizeUniqueConstraintError'){
-                    res.res.send({msg: 'Такой email уже зарегистрирован'})
+                    res.res.status(409).send({msg: 'Такой email уже зарегистрирован'})
                 }
                 else{
                     res.res.send({msg: error.message})
@@ -57,13 +57,19 @@ class Controller {
                 
               }
         } catch (error) {
-            console.log(error)
+            res.res.status(413).send(error)
         }
        
     }
     async blogGet(res,req){
         const blogs = await Blog.findAll({include: User})
         res.res.status(200).send(blogs)
+    }
+    async blogPatch(res, req){
+        const blog = await Blog.findByPk(req.req.body.id)
+        blog.text = req.req.body.text
+        blog.save()
+        res.res.send('msg')
     }
 }
 
